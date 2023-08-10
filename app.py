@@ -50,24 +50,40 @@ def set_custom_prompt():
 
 
 
-def conversational_chain(llm , prompt, db):
-    
-    vector = FAISS.load_local(DATA_FAISS, embeddings)
+def conversational_chain(prompt, db):
     # pprint(vector)
     # while True:
         # query = input("Query:")
         # query_vector = embeddings.embed_query(query)
         # res = vector.similarity_search_with_score(query)
+    memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
     c_chain = ConversationalRetrievalChain.from_llm(
         OpenAI(model="gpt-3.5-turbo-0613", temperature=0.2),
-        vector.as_retriever(),
-        memory=memory
+        retriever= db.as_retriever(),
+        chain_type="stuff",
+        memory=memory,
+        condense_question_prompt=prompt
     )
 
-    while True:
-        query = input("You: ")
-        res = c_chain({"question": query})
-        pprint(res["answer"])
+    return c_chain
 
 
-conversational_chain()
+
+
+def qa_bot():
+    embeddings = HuggingFaceEmbeddings(model_name= "sentence-transformers/all-MiniLM-L6-v2", model_kwargs= {"device": "cpu"})
+    db = FAISS.load_local(DATA_FAISS, embeddings)
+    qa_prompt = set_custom_prompt()
+    qa = conversational_chain(qa_prompt, db)
+    return qa
+
+def final_result(query):
+    chat_history=[]
+    qa_result = qa_bot()
+    response = qa_result({"query": query, "chat_history": chat_history})
+    return response
+
+    
+
+
+
