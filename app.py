@@ -15,15 +15,16 @@ embeddings = HuggingFaceEmbeddings(model_name= "sentence-transformers/all-MiniLM
 
 
 custom_prompt_template = """
-    You are kira ai assitant all the information about you has been described below you are a helpful bot
-    If you don't know the answer, please just say that you don't know the answer 
+    You are ammy an ai assitant all the information about you has been described in {context} below you are a helpful bot
+    If you don't know the answer, reply politely that you don't know , try to be as human as possible
+    in your answers
 
     Context: {context}
 
     Question: {question}
 
-    Only return the helpful answer below and nothing else.
-    Helpful Answer:
+    Return Answers like you're an actual human , be expressive and emotional in your replies
+    Answer:
     """
 
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
@@ -58,7 +59,7 @@ def conversational_chain(prompt, db):
         # res = vector.similarity_search_with_score(query)
     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
     c_chain = ConversationalRetrievalChain.from_llm(
-        OpenAI(model="gpt-3.5-turbo-0613", temperature=0.2),
+        OpenAI(model="text-ada-001", temperature=0.2),
         retriever= db.as_retriever(),
         chain_type="stuff",
         memory=memory,
@@ -80,10 +81,52 @@ def qa_bot():
 def final_result(query):
     chat_history=[]
     qa_result = qa_bot()
-    response = qa_result({"query": query, "chat_history": chat_history})
+    response = qa_result({"question": query, "chat_history": chat_history})
     return response
 
+# res = final_result("hello who are you ?")
+# pprint(res["answer"])
     
+# while True:
+#     query = input("Query:")
+#     res = final_result(query)
+#     pprint(res)
+
+
+# chainlit
+
+@cl.on_chat_start
+async def start():
+    chain = qa_bot()
+    msg = cl.Message(content="Invoking ammy....")
+    await msg.send()
+    msg.content = "Hi I'm ammy how can I help you ?"
+    await msg.update()
+    cl.user_session.set("chain", chain)
 
 
 
+
+@cl.on_message
+async def main(message):
+    chain = cl.user_session.get("chain")
+    cb = cl.AsyncLangchainCallbackHandler(stream_final_answer=True , answer_prefix_tokens=["FINAL", "ANSWER"])
+    cb.answer_reached = True
+    res = await chain.acall(message, callbacks=[cb])
+    pprint(res)
+    answer = res["answer"]
+    
+    
+    await cl.Message(content=answer).send()
+
+
+
+# @cl.on_message()
+# async def main(message: str):
+#     result = message.title()
+#     cl.send_message(content=f"Sure, here is a message: {result}")
+
+# @cl.on_chat_start()
+# async def start():
+#         content = "This is Hello world in chainlit"
+#         cl.send_message(content=content)
