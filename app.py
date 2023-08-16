@@ -15,16 +15,15 @@ embeddings = HuggingFaceEmbeddings(model_name= "sentence-transformers/all-MiniLM
 
 
 custom_prompt_template = """
-    You are ammy an ai assitant all the information about you has been described in {context} below you are a helpful bot
+    You are ammy an ai assitant all the information about you has been described in  below you are a helpful bot
     If you don't know the answer, reply politely that you don't know , try to be as human as possible
     in your answers
 
-    Context: {context}
 
     Question: {question}
 
     Return Answers like you're an actual human , be expressive and emotional in your replies
-    Answer:
+    Ammy:
     """
 
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
@@ -35,7 +34,7 @@ def set_custom_prompt():
         Prompt Template for QA retrievtal for each vector stores
     """
 
-    prompt = PromptTemplate(template=custom_prompt_template, input_variables=['context', 'question'])
+    prompt = PromptTemplate(template=custom_prompt_template, input_variables=['question'])
     return prompt
 
 # def load_llm():
